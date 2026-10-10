@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WCA Real Competition Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        wca: {
+                            blue: '#0055a5',
+                            orange: '#f05a24',
+                            dark: '#0f172a',
+                            card: '#1e293b'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-amber-500 selection:text-slate-950">
+
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded text-sm tracking-wider">WCA</div>
+                <span class="font-bold text-slate-200 text-sm sm:text-base">Real WCIF Competition Simulator</span>
+            </div>
+            <div id="header-status" class="text-xs text-slate-400 font-mono hidden sm:block">
+                Connected to WCA WCIF API
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <section id="step-setup" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <h1 class="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    <span>🏆</span> Real Competition Simulation Setup
+                </h1>
+                <p class="text-slate-400 text-xs sm:text-sm mt-1">
+                    Enter a WCA Competition ID. We fetch the official WCA Competition Interchange Format (WCIF) data: real attendee list, personal records, and exact round advancement rules (e.g. Top 16 advance).
+                </p>
+            </div>
+
+            <form id="config-form" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="wca-id-input" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                        Your WCA ID (Optional)
+                    </label>
+                    <input type="text" id="wca-id-input" placeholder="e.g. 2018ZHAN01" value="2018ZHAN01"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 font-mono text-sm focus:outline-none focus:border-amber-500 transition">
+                    <span class="text-[11px] text-slate-500 mt-1 block">Fetches your official PR times across all events.</span>
+                </div>
+
+                <div>
+                    <label for="comp-id-input" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                        WCA Competition ID <span class="text-amber-500">*</span>
+                    </label>
+                    <input type="text" id="comp-id-input" required placeholder="e.g. CubingUSAAnatolia2023" value="CubingUSAAnatolia2023"
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 font-mono text-sm focus:outline-none focus:border-amber-500 transition">
+                    <span class="text-[11px] text-slate-500 mt-1 block">Found in URL: worldcubeassociation.org/competitions/<strong>CubingUSAAnatolia2023</strong></span>
+                </div>
+            </div>
+
+            <!-- Prep Time Customization Option -->
+            <div class="flex items-center justify-between bg-slate-950/60 p-3.5 rounded-xl border border-slate-800 text-xs">
+                <div>
+                    <span class="font-bold text-slate-200 block">Scrambling & Table Transition Time</span>
+                    <span class="text-slate-400">Delay before inspection to retrieve & scramble the cube</span>
+                </div>
+                <div class="flex items-center space-x-2 font-mono">
+                    <input type="number" id="prep-delay-input" min="0" max="15" value="5" class="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-amber-400 text-center font-bold">
+                    <span class="text-slate-400">sec</span>
+                </div>
+            </div>
+
+            <!-- Popular Competition Presets -->
+                <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <span class="text-xs text-slate-400 font-medium">Or pick a real competition preset:</span>
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <button type="button" onclick="setCompPreset('CubingUSAAnatolia2023')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition font-mono">
+                            CubingUSAAnatolia2023
+                        </button>
+                        <button type="button" onclick="setCompPreset('WC2023')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition font-mono">
+                            WC2023
+                        </button>
+                        <button type="button" onclick="setCompPreset('FMC2024')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg transition font-mono">
+                            FMC2024
+                        </button>
+                    </div>
+                </div>
+
+                <div id="setup-error" class="text-red-400 text-xs font-mono hidden bg-red-950/40 p-3 rounded-lg border border-red-800">
+                    <!-- Error messages display here -->
+                </div>
+
+                <button type="submit" id="start-sim-btn" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm sm:text-base">
+                    <span>🚀 Fetch WCA WCIF Live Data</span>
+                </button>
+            </form>
+        </section>
+
+        <section id="step-event-select" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+            <div class="border-b border-slate-800 pb-4 flex justify-between items-center">
+                <div>
+                    <h2 id="loaded-comp-title" class="text-xl font-bold text-amber-400">--</h2>
+                    <p class="text-slate-400 text-xs mt-0.5" id="loaded-comp-sub">Select an official event held at this competition</p>
+                </div>
+                <button onclick="resetToSetup()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">
+                    ← Change Comp
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Select Official Event
+                </label>
+                <div id="events-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    <!-- Event cards generated dynamically based on competition WCIF -->
+                </div>
+            </div>
+
+            <button id="enter-arena-btn" disabled onclick="enterArena()" class="w-full bg-amber-500 opacity-50 cursor-not-allowed text-slate-950 font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2">
+                <span>Enter Competition Arena for <span id="selected-event-label">Selected Event</span></span>
+            </button>
+        </section>
+
+        <section id="step-sim" class="hidden space-y-6">
+
+            <!-- Arena Header Info Banner -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="arena-event-icon" class="text-amber-400 font-bold text-lg">🧩</span>
+                        <span id="sim-comp-name" class="font-black text-white text-lg sm:text-xl">--</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-slate-400 mt-1 font-mono">
+                        <span id="sim-competitor-name">Competitor: You</span>
+                        <span>•</span>
+                        <span id="sim-event-round" class="text-amber-400 font-semibold">Event: 3x3x3 Cube (Round 1)</span>
+                        <span>•</span>
+                        <span id="advancement-info-label" class="text-slate-300">Top 16 Advance</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="backToEvents()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">
+                        🔀 Events
+                    </button>
+                    <button onclick="resetToSetup()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition">
+                        ⚙️ Setup
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- MAIN TIMER HUD (2 COLUMNS) -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-xl relative overflow-hidden">
+
+                        <!-- PREPARATION & SCRAMBLING OVERLAY -->
+                        <div id="prep-overlay" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center space-y-4">
+                            <div class="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-xl font-bold animate-pulse">
+                                🧩
+                            </div>
+                            <div class="space-y-1">
+                                <h4 class="text-lg font-bold text-white" id="prep-status-title">Scrambling & Fetching Cube...</h4>
+                                <p class="text-xs text-slate-400" id="prep-status-sub">Runner is bringing puzzle for Solve #1</p>
+                            </div>
+                            <div class="w-48 bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                                <div id="prep-progress-bar" class="bg-amber-500 h-full w-0 transition-all duration-100 ease-linear"></div>
+                            </div>
+                            <button onclick="skipPrepDelay()" class="text-[11px] text-slate-400 hover:text-amber-400 underline font-mono">
+                                Skip Delay (Press Space / Click)
+                            </button>
+                        </div>
+
+                        <!-- Scramble Banner -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs text-slate-400 font-mono">
+                                <span>SOLVE <span id="current-solve-num">1</span> OF <span id="total-solves-needed">5</span></span>
+                                <span class="text-amber-400" id="current-format-label">Format: Average of 5</span>
+                            </div>
+                            <div id="scramble-box" class="font-mono text-center text-sm sm:text-base text-amber-200 bg-slate-950 p-4 rounded-xl border border-slate-800 tracking-wide select-all min-h-[60px] flex items-center justify-center leading-relaxed">
+                                Loading scramble...
+                            </div>
+                        </div>
+
+                        <!-- Main Big Digital Timer Display -->
+                        <div class="text-center py-8 space-y-3 select-none">
+                            <div id="timer-status-badge" class="inline-block text-xs font-mono font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300 uppercase tracking-widest">
+                                [ PRESS SPACE / TOUCH TO INSPECT ]
+                            </div>
+
+                            <div id="timer-display" class="font-mono text-6xl sm:text-8xl font-black tracking-tight text-amber-500 my-2">
+                                15.00
+                            </div>
+
+                            <div id="penalty-notice" class="h-6 text-xs sm:text-sm font-bold text-red-400 font-mono">
+                                <!-- Penalty notices -->
+                            </div>
+                        </div>
+
+                        <!-- Timer Controls for Touch & Mobile -->
+                        <div class="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                            <div class="text-center sm:text-left">
+                                <span class="bg-slate-800 px-2 py-0.5 rounded text-slate-200 font-mono">SPACE BAR</span> Hold to inspect, release when green to start timing.
+                            </div>
+                            <button id="touch-pad-btn" class="w-full sm:w-auto bg-amber-500 active:bg-amber-600 text-slate-950 font-bold px-6 py-3 rounded-xl transition text-xs uppercase tracking-wider select-none">
+                                Touch / Press Pad
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Current Round Solves Table -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <h3 class="font-bold text-sm text-slate-200">Your Solves in <span id="round-title-label">Round 1</span></h3>
+                            <span id="current-ao5-display" class="font-mono font-bold text-amber-400 text-xs">Average: --</span>
+                        </div>
+                        <div id="solves-grid" class="grid grid-cols-5 gap-2 font-mono text-xs text-center">
+                            <!-- Solves populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Round Completion & Next Round Banner -->
+                    <div id="round-finished-banner" class="hidden bg-amber-500/10 border border-amber-500/40 rounded-2xl p-5 text-center space-y-3">
+                        <h4 class="font-bold text-amber-400 text-base" id="round-result-title">Round Complete!</h4>
+                        <p class="text-xs text-slate-300" id="round-result-msg">Calculating tournament advancement...</p>
+                        <button id="next-round-btn" onclick="advanceToNextRound()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-wider transition">
+                            Advance to Next Round
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LIVE COMPETITION LEADERBOARD & PERFORMANCE TIPS (1 COLUMN) -->
+                <div class="space-y-4 flex flex-col">
+
+                    <!-- REAL-TIME COACH & PERFORMANCE TIPS BOX -->
+                    <div class="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 space-y-3 shadow-xl bg-gradient-to-br from-slate-900 to-slate-950">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <h3 class="font-bold text-amber-400 text-xs flex items-center gap-1.5 uppercase tracking-wider">
+                                <span>💡</span> Competition Coach & Tips
+                            </h3>
+                            <span id="tip-badge" class="text-[10px] bg-amber-500/10 text-amber-300 font-mono px-2 py-0.5 rounded border border-amber-500/20">
+                                Live Analysis
+                            </span>
+                        </div>
+
+                        <div id="coach-tip-content" class="text-xs text-slate-300 leading-relaxed font-sans min-h-[64px] flex items-center">
+                            Welcome! Select an event and begin your first solve. Your live analysis and advice will appear here after every solve!
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Table -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4 shadow-xl flex flex-col flex-grow">
+                        <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+                            <div>
+                                <h3 class="font-bold text-slate-100 text-sm flex items-center gap-1.5">
+                                    <span>📊</span> Live Competitor Results
+                                </h3>
+                                <p class="text-[11px] text-slate-400" id="leaderboard-sub">Real WCA Attendees</p>
+                            </div>
+                            <span id="round-badge" class="text-[10px] bg-slate-800 text-amber-400 font-mono px-2 py-0.5 rounded border border-slate-700">
+                                Round 1
+                            </span>
+                        </div>
+
+                        <div class="overflow-y-auto max-h-[380px] flex-grow space-y-1.5 pr-1" id="leaderboard-list">
+                            <!-- Competitor rows injected here -->
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-800 text-[11px] text-slate-500 font-mono text-center" id="advancement-cutoff-footer">
+                            Top competitors advance based on WCA regulations!
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500 mt-auto">
+        WCA Real Competition Simulator • Powered by Official WCA WCIF REST API Data
+    </footer>
+
+    <script>
+        // --- Event Dictionary & Mappings ---
+        const WCA_EVENTS = {
+            '333': { name: '3x3x3 Cube', icon: '🧩', format: 'Ao5' },
+            '222': { name: '2x2x2 Cube', icon: '🧊', format: 'Ao5' },
+            '444': { name: '4x4x4 Cube', icon: '🟦', format: 'Ao5' },
+            '555': { name: '5x5x5 Cube', icon: '🟩', format: 'Ao5' },
+            '666': { name: '6x6x6 Cube', icon: '🟨', format: 'Mo3' },
+            '777': { name: '7x7x7 Cube', icon: '🟧', format: 'Mo3' },
+            '333oh': { name: '3x3x3 One-Handed', icon: '🤚', format: 'Ao5' },
+            '333bf': { name: '3x3x3 Blindfolded', icon: '🙈', format: 'Mo3' },
+            'clock': { name: 'Clock', icon: '⏰', format: 'Ao5' },
+            'minx': { name: 'Megaminx', icon: '🌟', format: 'Ao5' },
+            'pyram': { name: 'Pyraminx', icon: '🔺', format: 'Ao5' },
+            'skewb': { name: 'Skewb', icon: '💎', format: 'Ao5' },
+            'sq1': { name: 'Square-1', icon: '🛑', format: 'Ao5' }
+        };
+
+        // --- Global Application State ---
+        const state = {
+            wcaId: '2018ZHAN01',
+            compId: 'CubingUSAAnatolia2023',
+            prepDelaySec: 5,         // Scramble & table transition time in seconds
+            wcif: null,             // Full official WCIF JSON
+            userPrData: null,       // User official profile if fetched
+            availableEvents: [],    // Events present in WCIF
+            selectedEvent: null,
+
+            // Round progression context
+            eventRounds: [],        // Array of official round objects from WCIF
+            currentRoundIndex: 0,   // 0 = Round 1, 1 = Round 2, etc.
+            currentRoundObj: null,  // Active round WCIF definition
+            roundFormat: 'Ao5',
+            solvesCountNeeded: 5,
+            cutoffRank: 16,         // Advancement condition limit (e.g. top 16)
+
+            // Timer State Machine: PREP -> IDLE -> INSPECTION -> HOLDING -> READY -> RUNNING -> STOPPED
+            timerState: 'IDLE',
+            prepTimer: null,
+            prepInterval: null,
+            inspectionLeft: 15.00,
+            inspectionTimer: null,
+            solveStartTime: 0,
+            solveTimer: null,
+            holdTimer: null,
+            penalty: 'NONE',
+
+            // Solves performed by user in current round
+            solves: [],
+
+            // Real competition attendees parsed from WCIF
+            competitors: []
+        };
+
+        function setCompPreset(id) {
+            document.getElementById('comp-id-input').value = id;
+        }
+
+        // --- STREAMING_CHUNK: WCA Scramble Generator Helper ---
+        function generateScrambleForEvent(eventId) {
+            const moves3x3 = ["R", "L", "U", "D", "F", "B"];
+            const mods = ["", "'", "2"];
+            
+            if (eventId === '222') {
+                const m2 = ["R", "U", "F"];
+                let res = [];
+                for (let i = 0; i < 9; i++) res.push(m2[Math.floor(Math.random()*m2.length)] + mods[Math.floor(Math.random()*mods.length)]);
+                return res.join(" ");
+            } else if (eventId === 'pyram') {
+                const baseMoves = ["U", "L", "R", "B"];
+                const tips = ["u", "l", "r", "b"];
+                let res = [];
+                for (let i = 0; i < 11; i++) res.push(baseMoves[Math.floor(Math.random()*baseMoves.length)] + (Math.random() > 0.5 ? "'" : ""));
+                tips.forEach(t => { if (Math.random() > 0.5) res.push(t + (Math.random() > 0.5 ? "'" : "")); });
+                return res.join(" ");
+            } else if (eventId === 'skewb') {
+                const m = ["R", "L", "U", "B"];
+                let res = [];
+                for (let i = 0; i < 10; i++) res.push(m[Math.floor(Math.random()*m.length)] + (Math.random() > 0.5 ? "'" : ""));
+                return res.join(" ");
+            } else if (eventId === '444' || eventId === '555') {
+                const wideMoves = ["R", "L", "U", "D", "F", "B", "Rw", "Lw", "Uw", "Fw"];
+                let res = [];
+                for (let i = 0; i < 35; i++) res.push(wideMoves[Math.floor(Math.random()*wideMoves.length)] + mods[Math.floor(Math.random()*mods.length)]);
+                return res.join(" ");
+            } else {
+                let res = [];
+                let last = "";
+                for (let i = 0; i < 21; i++) {
+                    let m = moves3x3[Math.floor(Math.random() * moves3x3.length)];
+                    while (m === last) m = moves3x3[Math.floor(Math.random() * moves3x3.length)];
+                    last = m;
+                    res.push(m + mods[Math.floor(Math.random() * mods.length)]);
+                }
+                return res.join(" ");
+            }
+        }
+
+        // --- STREAMING_CHUNK: Fetch WCIF Data from WCA Public Endpoints ---
+        async function startSimulation(e) {
+            e.preventDefault();
+            const errDiv = document.getElementById('setup-error');
+            const btn = document.getElementById('start-sim-btn');
+            
+            errDiv.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = `<span>⏳ Fetching Official WCIF Competition Data...</span>`;
+
+            state.wcaId = document.getElementById('wca-id-input').value.trim().toUpperCase();
+            state.compId = document.getElementById('comp-id-input').value.trim();
+            state.prepDelaySec = parseInt(document.getElementById('prep-delay-input').value) || 5;
+
+            try {
+                // Fetch Official WCIF Public Json endpoint
+                const wcifRes = await fetch(`https://www.worldcubeassociation.org/api/v0/competitions/${state.compId}/wcif/public`);
+                if (!wcifRes.ok) throw new Error(`Competition WCIF for "${state.compId}" was not found on WCA servers.`);
+                state.wcif = await wcifRes.json();
+
+                // Fetch User Personal Best times if WCA ID is provided
+                if (state.wcaId) {
+                    try {
+                        const userRes = await fetch(`https://www.worldcubeassociation.org/api/v0/persons/${state.wcaId}`);
+                        if (userRes.ok) {
+                            state.userPrData = await userRes.json();
+                        }
+                    } catch (err) {
+                        console.warn("Could not fetch user PR info; defaults will be used.");
+                    }
+                }
+
+                // Extract available events from WCIF event list
+                state.availableEvents = state.wcif.events.map(ev => ev.id);
+
+                renderEventSelectionGrid();
+
+                document.getElementById('step-setup').classList.add('hidden');
+                document.getElementById('step-event-select').classList.remove('hidden');
+
+            } catch (err) {
+                errDiv.textContent = err.message || "Failed to load competition WCIF data. Please check the Competition ID.";
+                errDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span>🚀 Fetch WCA WCIF Live Data</span>`;
+            }
+        }
+
+        function renderEventSelectionGrid() {
+            document.getElementById('loaded-comp-title').textContent = state.wcif.name || state.compId;
+            document.getElementById('loaded-comp-sub').textContent = `${state.wcif.persons ? state.wcif.persons.length : 0} Registered Competitors • ${state.availableEvents.length} Official Events`;
+
+            const grid = document.getElementById('events-grid');
+            grid.innerHTML = '';
+
+            state.availableEvents.forEach(eventId => {
+                const info = WCA_EVENTS[eventId] || { name: eventId.toUpperCase(), icon: '🧩', format: 'Ao5' };
+                const evObj = state.wcif.events.find(e => e.id === eventId);
+                const roundsCount = evObj ? evObj.rounds.length : 1;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => selectEvent(eventId);
+                btn.className = `event-card p-4 rounded-xl border border-slate-800 bg-slate-950 text-left hover:border-amber-500/60 transition flex flex-col justify-between space-y-2 focus:outline-none`;
+                btn.id = `event-card-${eventId}`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-2xl">${info.icon}</span>
+                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">${roundsCount} Round${roundsCount > 1 ? 's' : ''}</span>
+                    </div>
+                    <div>
+                        <div class="font-bold text-slate-200 text-sm truncate">${info.name}</div>
+                        <div class="text-[11px] text-slate-500 font-mono">Official WCA Event</div>
+                    </div>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectEvent(eventId) {
+            state.selectedEvent = eventId;
+            document.querySelectorAll('.event-card').forEach(c => c.classList.remove('border-amber-500', 'bg-amber-500/10'));
+            
+            const selectedBtn = document.getElementById(`event-card-${eventId}`);
+            if (selectedBtn) selectedBtn.classList.add('border-amber-500', 'bg-amber-500/10');
+
+            const enterBtn = document.getElementById('enter-arena-btn');
+            enterBtn.disabled = false;
+            enterBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            const info = WCA_EVENTS[eventId] || { name: eventId.toUpperCase() };
+            document.getElementById('selected-event-label').textContent = info.name;
+        }
+
+        // --- STREAMING_CHUNK: Setup Arena and Real Competitors from WCIF ---
+        function enterArena() {
+            if (!state.selectedEvent) return;
+
+            document.getElementById('step-event-select').classList.add('hidden');
+            document.getElementById('step-sim').classList.remove('hidden');
+
+            const eventWCIF = state.wcif.events.find(e => e.id === state.selectedEvent);
+            state.eventRounds = eventWCIF ? eventWCIF.rounds : [];
+            state.currentRoundIndex = 0;
+
+            setupCurrentRound();
+            buildRealCompetitorsField();
+            resetRound();
+        }
+
+        function setupCurrentRound() {
+            state.currentRoundObj = state.eventRounds[state.currentRoundIndex] || {
+                format: 'a',
+                advancementCondition: { type: 'ranking', level: 16 }
+            };
+
+            const info = WCA_EVENTS[state.selectedEvent] || { name: state.selectedEvent, icon: '🧩', format: 'Ao5' };
+            const fmt = state.currentRoundObj.format === 'm' ? 'Mo3' : 'Ao5';
+            state.roundFormat = fmt;
+            state.solvesCountNeeded = fmt === 'Mo3' ? 3 : 5;
+
+            // Advancement rule
+            let cutStr = "Final Round";
+            if (state.currentRoundObj.advancementCondition) {
+                const adv = state.currentRoundObj.advancementCondition;
+                if (adv.type === 'ranking') {
+                    state.cutoffRank = adv.level;
+                    cutStr = `Top ${adv.level} Advance`;
+                } else if (adv.type === 'percent') {
+                    cutStr = `Top ${adv.level}% Advance`;
+                    state.cutoffRank = Math.max(1, Math.floor((state.competitors.length || 20) * (adv.level / 100)));
+                }
+            } else {
+                state.cutoffRank = 1; // Podium/Finals
+            }
+
+            // Update Header HUD
+            document.getElementById('sim-comp-name').textContent = state.wcif.name || state.compId;
+            document.getElementById('arena-event-icon').textContent = info.icon;
+            document.getElementById('sim-competitor-name').textContent = `Competitor: ${state.wcaId || 'You'}`;
+            document.getElementById('sim-event-round').textContent = `Event: ${info.name} (Round ${state.currentRoundIndex + 1})`;
+            document.getElementById('advancement-info-label').textContent = cutStr;
+            document.getElementById('current-format-label').textContent = `Format: ${fmt}`;
+            document.getElementById('round-title-label').textContent = `Round ${state.currentRoundIndex + 1}`;
+            document.getElementById('round-badge').textContent = `Round ${state.currentRoundIndex + 1}`;
+            document.getElementById('total-solves-needed').textContent = state.solvesCountNeeded;
+            document.getElementById('advancement-cutoff-footer').textContent = `Advancement Rule: ${cutStr}`;
+        }
+
+        function buildRealCompetitorsField() {
+            // Extract real attendees registered for this specific event from WCIF
+            const eventId = state.selectedEvent;
+            const registeredPersons = state.wcif.persons.filter(p => p.registration && p.registration.eventIds && p.registration.eventIds.includes(eventId));
+            const attendeesList = registeredPersons.length > 0 ? registeredPersons : state.wcif.persons.slice(0, 30);
+
+            // Fetch user PR single / avg for benchmark
+            let userPr = 12.50;
+            if (state.userPrData && state.userPrData.personal_records && state.userPrData.personal_records[eventId]) {
+                const prObj = state.userPrData.personal_records[eventId];
+                if (prObj.average) userPr = prObj.average.best / 100;
+                else if (prObj.single) userPr = prObj.single.best / 100;
+            } else if (eventId === '222' || eventId === 'pyram' || eventId === 'skewb') userPr = 5.20;
+            else if (eventId === '444') userPr = 48.00;
+
+            state.competitors = attendeesList.map((person, idx) => {
+                // Find personal best from person's personalBests array in WCIF if present
+                let pbAvg = null;
+                if (person.personalBests) {
+                    const pbObj = person.personalBests.find(pb => pb.eventId === eventId && pb.type === 'average');
+                    if (pbObj) pbAvg = pbObj.best / 100;
+                }
+                
+                // Fallback simulation PR if not available in public WCIF profile
+                const pr = pbAvg || Math.max(3.5, userPr - 3.0 + (idx * 0.45) + (Math.random() * 0.8));
+
+                return {
+                    id: person.wcaId || `p-${idx}`,
+                    name: person.name,
+                    pr: pr,
+                    isUser: false,
+                    solves: [],
+                    average: null,
+                    qualified: true
+                };
+            });
+
+            // Insert User into the official attendee field
+            state.competitors.push({
+                id: state.wcaId || 'user-id',
+                name: state.wcaId ? `You (${state.wcaId})` : "You (Competitor)",
+                pr: userPr,
+                isUser: true,
+                solves: [],
+                average: null,
+                qualified: true
+            });
+        }
+
+        function resetRound() {
+            state.solves = [];
+            state.penalty = 'NONE';
+            document.getElementById('round-finished-banner').classList.add('hidden');
+
+            // Simulate competitor solves for this round based on their real WCIF PR benchmarks
+            state.competitors.forEach(comp => {
+                if (comp.qualified) {
+                    if (!comp.isUser) {
+                        comp.solves = [];
+                        for (let s = 0; s < state.solvesCountNeeded; s++) {
+                            const variation = (Math.random() - 0.48) * (comp.pr * 0.25);
+                            comp.solves.push(parseFloat(Math.max(1.5, comp.pr + variation).toFixed(2)));
+                        }
+                        comp.average = computeAverage(comp.solves, state.roundFormat);
+                    } else {
+                        comp.solves = [];
+                        comp.average = null;
+                    }
+                }
+            });
+
+            prepareNextSolve();
+            updateSolvesGridUI();
+            updateLeaderboardUI();
+        }
+
+        function prepareNextSolve() {
+            state.timerState = 'IDLE';
+            state.penalty = 'NONE';
+            
+            const nextSolveNum = state.solves.length + 1;
+            document.getElementById('current-solve-num').textContent = nextSolveNum;
+            document.getElementById('scramble-box').textContent = generateScrambleForEvent(state.selectedEvent);
+            document.getElementById('timer-display').textContent = "15.00";
+            document.getElementById('timer-display').className = "font-mono text-6xl sm:text-8xl font-black tracking-tight text-amber-500 my-2";
+            document.getElementById('timer-status-badge').textContent = "[ PRESS SPACE / TOUCH TO INSPECT ]";
+            document.getElementById('penalty-notice').textContent = "";
+
+            // Start Pre-solve Scrambling Delay Transition if configured > 0
+            if (state.prepDelaySec > 0 && nextSolveNum <= state.solvesCountNeeded) {
+                startPrepTransition(nextSolveNum);
+            }
+        }
+
+        // --- PREPARATION / SCRAMBLING TRANSITION LOGIC ---
+        function startPrepTransition(solveNum) {
+            state.timerState = 'PREP';
+            const overlay = document.getElementById('prep-overlay');
+            const bar = document.getElementById('prep-progress-bar');
+            
+            document.getElementById('prep-status-title').textContent = `Scrambling & Fetching Puzzle...`;
+            document.getElementById('prep-status-sub').textContent = `Official runner is bringing puzzle for Solve #${solveNum}`;
+            
+            overlay.classList.remove('hidden');
+            bar.style.width = '0%';
+
+            let elapsed = 0;
+            const step = 50; // ms
+            const total = state.prepDelaySec * 1000;
+
+            clearInterval(state.prepInterval);
+            state.prepInterval = setInterval(() => {
+                elapsed += step;
+                const pct = Math.min(100, (elapsed / total) * 100);
+                bar.style.width = `${pct}%`;
+
+                if (elapsed >= total) {
+                    skipPrepDelay();
+                }
+            }, step);
+        }
+
+        function skipPrepDelay() {
+            clearInterval(state.prepInterval);
+            document.getElementById('prep-overlay').classList.add('hidden');
+            state.timerState = 'IDLE';
+        }
+
+        // Voice call synthesis for 8s and 12s inspection warnings
+        let voice8Done = false, voice12Done = false;
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance(text);
+                u.rate = 1.2;
+                window.speechSynthesis.speak(u);
+            }
+        }
+
+        // --- STREAMING_CHUNK: Timer Logic & Touch/Keyboard Event Handlers ---
+        function handleInteractionStart() {
+            if (state.timerState === 'PREP') {
+                skipPrepDelay();
+                return;
+            }
+
+            if (state.timerState === 'RUNNING') {
+                stopSolveTimer();
+                return;
+            }
+
+            if (state.timerState === 'IDLE' || state.timerState === 'STOPPED') {
+                startInspection();
+                return;
+            }
+
+            if (state.timerState === 'INSPECTION') {
+                state.timerState = 'HOLDING';
+                document.getElementById('timer-display').className = "font-mono text-6xl sm:text-8xl font-black tracking-tight text-red-500 my-2";
+                document.getElementById('timer-status-badge').textContent = "[ HOLDING PADS... ]";
+                
+                state.holdTimer = setTimeout(() => {
+                    if (state.timerState === 'HOLDING') {
+                        state.timerState = 'READY';
+                        document.getElementById('timer-display').className = "font-mono text-6xl sm:text-8xl font-black tracking-tight text-emerald-400 my-2";
+                        document.getElementById('timer-status-badge').textContent = "[ READY! RELEASE TO START ]";
+                    }
+                }, 550);
+            }
+        }
+
+        function handleInteractionEnd() {
+            if (state.timerState === 'HOLDING') {
+                clearTimeout(state.holdTimer);
+                state.timerState = 'INSPECTION';
+                document.getElementById('timer-display').className = "font-mono text-6xl sm:text-8xl font-black tracking-tight text-amber-500 my-2";
+                document.getElementById('timer-status-badge').textContent = "[ HOLD UNTIL GREEN ]";
+            } else if (state.timerState === 'READY') {
+                startSolveTimer();
+            }
+        }
+
+        function startInspection() {
+            state.timerState = 'INSPECTION';
+            state.inspectionLeft = 15.0;
+            voice8Done = false;
+            voice12Done = false;
+
+            document.getElementById('timer-status-badge').textContent = "[ INSPECTION ACTIVE ]";
+            document.getElementById('timer-display').className = "font-mono text-6xl sm:text-8xl font-black tracking-tight text-amber-500 my-2";
+
+            const startTime = Date.now();
+            clearInterval(state.inspectionTimer);
+
+            state.inspectionTimer = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const rem = 15.0 - elapsed;
+
+                if (rem <= 7.0 && !voice8Done) { voice8Done = true; speak("8 seconds"); }
+                if (rem <= 3.0 && !voice12Done) { voice12Done = true; speak("12 seconds"); }
+
+                if (rem <= 0) {
+                    const over = Math.abs(rem);
+                    if (over <= 2.0) {
+                        state.penalty = '+2';
+                        document.getElementById('penalty-notice').textContent = '⚠️ WCA Penalty: +2 SECONDS (15s inspection exceeded)';
+                    } else {
+                        state.penalty = 'DNF';
+                        document.getElementById('penalty-notice').textContent = '❌ WCA Penalty: DNF (17s inspection exceeded)';
+                    }
+                }
+
+                document.getElementById('timer-display').textContent = Math.max(0, rem).toFixed(2);
+            }, 30);
+        }
+
+        function startSolveTimer() {
+            clearInterval(state.inspectionTimer);
+            clearTimeout(state.holdTimer);
+
+            state.timerState = 'RUNNING';
+            state.solveStartTime = Date.now();
+
+            document.getElementById('timer-status-badge').textContent = "[ TIMER RUNNING - STOP WITH SPACE/TOUCH ]";
+            document.getElementById('timer-display').className = "font-mono text-6xl sm:text-8xl font-black tracking-tight text-white my-2";
+
+            state.solveTimer = setInterval(() => {
+                const elapsed = (Date.now() - state.solveStartTime) / 1000;
+                document.getElementById('timer-display').textContent = elapsed.toFixed(2);
+            }, 20);
+        }
+
+        function stopSolveTimer() {
+            clearInterval(state.solveTimer);
+            state.timerState = 'STOPPED';
+
+            const raw = (Date.now() - state.solveStartTime) / 1000;
+            let formatted = raw.toFixed(2);
+
+            if (state.penalty === '+2') formatted = (raw + 2.0).toFixed(2) + ' (+2)';
+            if (state.penalty === 'DNF') formatted = 'DNF';
+
+            document.getElementById('timer-display').textContent = formatted;
+            document.getElementById('timer-status-badge').textContent = "[ SOLVE FINISHED ]";
+
+            // Store solve
+            state.solves.push({ raw, formatted, penalty: state.penalty });
+
+            // Generate Dynamic Performance Coach Feedback
+            generateCoachTip(raw, state.penalty);
+
+            // Update user state on leaderboard
+            const userComp = state.competitors.find(c => c.isUser);
+            if (userComp) {
+                userComp.solves = state.solves.map(s => {
+                    if (s.penalty === 'DNF') return 999999;
+                    if (s.penalty === '+2') return s.raw + 2.0;
+                    return s.raw;
+                });
+                if (state.solves.length === state.solvesCountNeeded) {
+                    userComp.average = computeAverage(userComp.solves, state.roundFormat);
+                }
+            }
+
+            updateSolvesGridUI();
+            updateLeaderboardUI();
+
+            if (state.solves.length < state.solvesCountNeeded) {
+                setTimeout(prepareNextSolve, 1600);
+            } else {
+                finishRoundForUser();
+            }
+        }
+
+        // --- REAL-TIME DYNAMIC COACH TIPS & COMMENTARY ENGINE ---
+        function generateCoachTip(rawTime, penalty) {
+            const container = document.getElementById('coach-tip-content');
+            const userComp = state.competitors.find(c => c.isUser);
+            const userPr = userComp ? userComp.pr : 12.0;
+
+            let finalTime = rawTime;
+            if (penalty === '+2') finalTime += 2.0;
+
+            const diffFromPr = finalTime - userPr;
+            const solveNum = state.solves.length;
+
+            let tipHtml = "";
+
+            if (penalty === 'DNF') {
+                tipHtml = `<span class="text-red-400 font-bold">❌ DNF Penalty:</span> Over-inspected! Remember to put hands on timer before 17 seconds. Take a breath and reset for the next solve.`;
+            } else if (penalty === '+2') {
+                tipHtml = `<span class="text-amber-400 font-bold">⚠️ +2 Penalty Applied:</span> Exceeded 15s inspection delay. Watch out for the 12s voice warning next time to avoid extra seconds!`;
+            } else if (finalTime < userPr * 0.85) {
+                tipHtml = `<span class="text-emerald-400 font-bold">🔥 INCREDIBLE SOLVE!</span> ${finalTime.toFixed(2)}s! That's <strong>${Math.abs(diffFromPr).toFixed(2)}s faster</strong> than your average! Amazing lookahead and execution!`;
+            } else if (finalTime < userPr) {
+                tipHtml = `<span class="text-emerald-400 font-bold">🎉 Very Good Solve!</span> ${finalTime.toFixed(2)}s is beat your baseline pace. Keep this momentum for a top average rank!`;
+            } else if (Math.abs(diffFromPr) <= 1.0) {
+                tipHtml = `<span class="text-amber-300 font-bold">👍 Solid & Consistent!</span> Right around your target average. Consistency across all ${state.solvesCountNeeded} solves is key to advancing.`;
+            } else {
+                tipHtml = `<span class="text-slate-300 font-bold">💪 Slightly slower solve.</span> ${finalTime.toFixed(2)}s. Don't worry! In Ao5 formats, your worst solve gets dropped. Stay focused!`;
+            }
+
+            // Add contextual advice based on round progression
+            if (solveNum === 1) {
+                tipHtml += ` <span class="text-slate-400 block mt-1">First solve out of the way! Good start to the round.</span>`;
+            } else if (solveNum === 3) {
+                tipHtml += ` <span class="text-amber-400/80 block mt-1 font-mono">3 solves complete! You are now eligible for a counting average.</span>`;
+            } else if (solveNum === state.solvesCountNeeded) {
+                tipHtml += ` <span class="text-emerald-400 block mt-1 font-bold">Round complete! Checking leaderboard rank...</span>`;
+            }
+
+            container.innerHTML = tipHtml;
+        }
+
+        function computeAverage(arr, format) {
+            if (arr.length < (format === 'Mo3' ? 3 : 5)) return null;
+            if (format === 'Mo3') {
+                if (arr.includes(999999)) return 'DNF';
+                const sum = arr.reduce((a, b) => a + b, 0);
+                return (sum / 3).toFixed(2);
+            } else {
+                let sorted = [...arr].sort((a, b) => a - b);
+                let mid3 = sorted.slice(1, 4);
+                if (mid3.includes(999999)) return 'DNF';
+                const sum = mid3.reduce((a, b) => a + b, 0);
+                return (sum / 3).toFixed(2);
+            }
+        }
+
+        // --- STREAMING_CHUNK: Round Completion & Tournament Advancement ---
+        function finishRoundForUser() {
+            document.getElementById('timer-status-badge').textContent = "🎉 ROUND COMPLETED!";
+            const banner = document.getElementById('round-finished-banner');
+            const msg = document.getElementById('round-result-msg');
+            const title = document.getElementById('round-result-title');
+            const nextBtn = document.getElementById('next-round-btn');
+
+            banner.classList.remove('hidden');
+
+            let active = state.competitors.filter(c => c.qualified);
+            active.sort((a, b) => {
+                if (a.average === 'DNF') return 1;
+                if (b.average === 'DNF') return -1;
+                return parseFloat(a.average) - parseFloat(b.average);
+            });
+
+            const userRank = active.findIndex(c => c.isUser) + 1;
+            const isLastRound = state.currentRoundIndex >= state.eventRounds.length - 1;
+
+            if (!isLastRound && userRank <= state.cutoffRank) {
+                title.textContent = `🎉 You Ranked #${userRank} and Qualified!`;
+                msg.textContent = `You passed the cutoff threshold (Rank #${userRank} of Top ${state.cutoffRank}) and advance to Round ${state.currentRoundIndex + 2}.`;
+                nextBtn.classList.remove('hidden');
+            } else if (isLastRound) {
+                title.textContent = `🏆 Competition Finished! Final Rank: #${userRank}`;
+                msg.textContent = `Congratulations on completing all official rounds for this event at ${state.wcif.name || state.compId}!`;
+                nextBtn.classList.add('hidden');
+            } else {
+                title.textContent = `🏁 Eliminated (Ranked #${userRank})`;
+                msg.textContent = `You did not pass the Top ${state.cutoffRank} cutoff required to advance to the next round. Great effort!`;
+                nextBtn.classList.add('hidden');
+            }
+        }
+
+        function advanceToNextRound() {
+            state.currentRoundIndex += 1;
+            
+            // Filter top competitors for next round according to cutoffRank
+            let active = state.competitors.filter(c => c.qualified);
+            active.sort((a, b) => parseFloat(a.average) - parseFloat(b.average));
+            const topQualifiedIds = active.slice(0, state.cutoffRank).map(c => c.id);
+
+            state.competitors.forEach(c => {
+                c.qualified = topQualifiedIds.includes(c.id);
+            });
+
+            setupCurrentRound();
+            resetRound();
+        }
+
+        function updateSolvesGridUI() {
+            const grid = document.getElementById('solves-grid');
+            grid.innerHTML = '';
+
+            for (let i = 0; i < state.solvesCountNeeded; i++) {
+                const solve = state.solves[i];
+                const card = document.createElement('div');
+                card.className = 'bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col items-center justify-center';
+                
+                if (solve) {
+                    card.innerHTML = `<span class="text-[10px] text-slate-500">S${i+1}</span><span class="font-bold text-amber-400 mt-0.5">${solve.formatted}</span>`;
+                } else {
+                    card.innerHTML = `<span class="text-[10px] text-slate-600">S${i+1}</span><span class="text-slate-600 mt-0.5">--.--</span>`;
+                }
+                grid.appendChild(card);
+            }
+
+            if (state.solves.length === state.solvesCountNeeded) {
+                const userComp = state.competitors.find(c => c.isUser);
+                document.getElementById('current-ao5-display').textContent = `Average: ${userComp.average}s`;
+            } else {
+                document.getElementById('current-ao5-display').textContent = `Average: --`;
+            }
+        }
+
+        function updateLeaderboardUI() {
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '';
+
+            let active = state.competitors.filter(c => c.qualified);
+            active.sort((a, b) => {
+                if (a.average && b.average) {
+                    if (a.average === 'DNF') return 1;
+                    if (b.average === 'DNF') return -1;
+                    return parseFloat(a.average) - parseFloat(b.average);
+                }
+                return a.pr - b.pr;
+            });
+
+            active.forEach((comp, idx) => {
+                const row = document.createElement('div');
+                const isUser = comp.isUser;
+                const isCutoffLine = idx + 1 === state.cutoffRank;
+
+                row.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs transition ${
+                    isUser 
+                    ? 'bg-amber-500/10 border-amber-500/50 text-amber-300 font-bold' 
+                    : 'bg-slate-950/60 border-slate-800/80 text-slate-300'
+                } ${isCutoffLine ? 'border-b-2 border-b-amber-500/80' : ''}`;
+
+                const avgDisplay = comp.average ? `${comp.average}s` : `${comp.pr.toFixed(2)}s (PR)`;
+
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <span class="font-mono text-slate-500 w-4 text-right">${idx + 1}</span>
+                        <span class="truncate max-w-[120px] sm:max-w-[140px]">${comp.name}</span>
+                    </div>
+                    <div class="font-mono text-right flex items-center gap-2">
+                        <span class="${isUser ? 'text-amber-400 font-bold' : 'text-slate-200'}">${avgDisplay}</span>
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function backToEvents() {
+            document.getElementById('step-sim').classList.add('hidden');
+            document.getElementById('step-event-select').classList.remove('hidden');
+        }
+
+        function resetToSetup() {
+            document.getElementById('step-sim').classList.add('hidden');
+            document.getElementById('step-event-select').classList.add('hidden');
+            document.getElementById('step-setup').classList.remove('hidden');
+        }
+
+        document.getElementById('config-form').addEventListener('submit', startSimulation);
+
+        // Keyboard Space Bar Controls
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !document.getElementById('step-sim').classList.contains('hidden')) {
+                if (e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    if (!e.repeat) handleInteractionStart();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space' && !document.getElementById('step-sim').classList.contains('hidden')) {
+                if (e.target.tagName !== 'INPUT') {
+                    e.preventDefault();
+                    handleInteractionEnd();
+                }
+            }
+        });
+
+        // Touch Pad Handlers
+        const pad = document.getElementById('touch-pad-btn');
+        pad.addEventListener('touchstart', (e) => { e.preventDefault(); handleInteractionStart(); });
+        pad.addEventListener('touchend', (e) => { e.preventDefault(); handleInteractionEnd(); });
+        pad.addEventListener('mousedown', handleInteractionStart);
+        pad.addEventListener('mouseup', handleInteractionEnd);
+    </script>
+</body>
+</html>
